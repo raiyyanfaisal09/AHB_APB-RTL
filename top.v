@@ -1,68 +1,60 @@
-module top(HADDR,HWDATA,HTRANS,HREADYin,HWRITE,HRESP,
-	   HRDATA,HREADYout,HSIZE,HRESETn,HCLK,PADDR,
-	   PWDATA,PSEL,PWRITE,PENABLE,PRDATA);
+module top_tb();
+reg HCLK;
+reg HRESETn=0;
 
-input	[31:0]HADDR,
-	HWDATA,
-	PRDATA;
-
-input	[1:0]HTRANS;
-input	HREADYin,
-	HWRITE,
-	HRESETn,
-	HCLK;
-
-input	[2:0]HSIZE;
-
-output	[31:0]PADDR,
-	PWDATA,
-	HRDATA;
-
-output	[1:0]HRESP;
-
-output	PWRITE,
-	PENABLE,
-	HREADYout;
-
-output	[2:0]PSEL;
+wire [31:0]wdata,prdata,paddr;
+wire [2:0]psel;
+wire pwrite,penable;
 
 
-wire	[31:0]ADDR_1,ADDR_2,ADDR_3,
-	      DATA_1,DATA_2,DATA_3;
-
-wire	w_reg,vld;
-wire [2:0]tmp_sel;
- 
+ahb_master MASTER(.HCLK(HCLK),		.HRESETn(HRESETn),	.HWRITE(BRIDGE.HWRITE),
+		  .HREADYin(BRIDGE.HREADYin),	.HWDATA(BRIDGE.HWDATA),	.HADDR(BRIDGE.HADDR),
+		  .HTRANS( BRIDGE.HTRANS),	.HREADYout( BRIDGE.HREADYout),	.HRESP( BRIDGE.HRESP),
+		  .HRDATA(BRIDGE.HRDATA),	.HSIZE(BRIDGE.HSIZE));
 
 
-ahb_slave SLAVE(.HADDR(HADDR),	  	.HWDATA(HWDATA),	.HTRANS(HTRANS),
-		.HREADYin(HREADYin),	.HWRITE(HWRITE),	.HRESP(HRESP), 
-		.HRDATA(HRDATA),	.HSIZE(HSIZE),		.HCLK(HCLK),
-		.HRESETn(HRESETn),	.PRDATA(PRDATA),	.HADDR_1(ADDR_1),
-		.HWDATA_1(DATA_1),	.HADDR_2(ADDR_2),	.HWDATA_2(DATA_2),
-		.HADDR_3(ADDR_3),	.HWDATA_3(DATA_3),	.HWRITEreg(w_reg),
-		.valid(vld),		.TEMP_SEL(tmp_sel));
+top BRIDGE(.HADDR( MASTER.HADDR),	.HWDATA( MASTER.HWDATA),	.HTRANS( MASTER.HTRANS),
+	   .HREADYin( MASTER.HREADYin),	.HWRITE( MASTER.HWRITE),	.HRESP( MASTER.HRESP),
+	   .HRDATA( MASTER.HRDATA),	.HREADYout( MASTER.HREADYout),	.HSIZE( MASTER.HSIZE),
+	   .HRESETn( MASTER.HRESETn),	.HCLK(HCLK),			.PADDR(paddr),
+	   .PWDATA(wdata),		.PSEL(psel),			.PWRITE(pwrite),
+	   .PENABLE(penable),		.PRDATA(prdata));
 
 
-fsm FSM(.HADDR_1(ADDR_1),		.HADDR_2(ADDR_2),	.HADDR_3(ADDR_3),
-	.HWDATA_1(DATA_1),		.HWDATA_2(DATA_2),	.HWDATA_3(DATA_3),
-	.HWRITE(HWRITE),		.HWRITEreg(w_reg),	.HSIZE(HSIZE),
-        .TEMP_SEL(tmp_sel),		.valid(vld),		.PADDR(PADDR),
-	.PWDATA(PWDATA),		.PSEL(PSEL),		.PWRITE(PWRITE),
-	.PENABLE(PENABLE),		.HCLK(HCLK),		.HRESETn(HRESETn),
-	.HTRANS(HTRANS),		.HREADYout(HREADYout));
+ahb_int SLAVE(.PENABLE(penable), .PWRITE(pwrite),	.PSEL(psel),
+	      .PADDR(paddr),	 .PWDATA(wdata),	.PRDATA(prdata));
 
 
 
+
+
+
+always
+begin
+HCLK=1'b1;
+#10;
+HCLK=~HCLK;
+#10;
+end
+
+
+task rst;
+begin
+@(negedge HCLK);
+HRESETn=1'b0;
+@(negedge HCLK);
+HRESETn=1'b1;
+end
+endtask
+
+initial
+begin
+rst;
+#10000 $finish();
+end
 
 endmodule
 
 
 
 
-
-
-
-	
-
-	
